@@ -2,21 +2,21 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <title></title>
     <subtitle></subtitle>
-    <link href="https://github.com/asvny/eleventy-blog-monospacedfeed.xml" rel="self"/>
-    <link href="https://github.com/asvny/eleventy-blog-monospaced/"/>
+    <link href="https://engineersbox.github.io/websitefeed.xml" rel="self"/>
+    <link href="https://engineersbox.github.io/website/"/>
     <updated>2022-06-18T00:00:00Z</updated>
-    <id>https://github.com/asvny/eleventy-blog-monospaced</id>
+    <id>https://engineersbox.github.io/website</id>
     <author>
-        <name>Asvny</name>
-        <email>monospaced_@xyz.com</email>
+        <name>EngineersBox</name>
+        <email>&lt;None&gt;</email>
     </author>
     
         
         <entry>
             <title>A scheduled post</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-scheduled-post/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2022/06/18/a-scheduled-post.html"/>
             <updated>2022-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-scheduled-post/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2022/06/18/a-scheduled-post.html</id>
             <content type="html">
                 <![CDATA[
                 <p>This post is scheduled for the future, specifically mid-2022. Hopefully you're still blogging by then too. Once that date ticks by, this post will automatically become published and visible.</p>
@@ -47,9 +47,9 @@
         
         <entry>
             <title>A post with figures and video</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/post-with-figures-and-images/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2019/06/18/a-post-with-figures-and-video.html"/>
             <updated>2019-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/post-with-figures-and-images/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2019/06/18/a-post-with-figures-and-video.html</id>
             <content type="html">
                 <![CDATA[
                 <p>A post to demonstrate how a blog post looks on Monospaced. Content is all set in the “Body” field as markdown and Eleventy transforms it into a proper HTML post. You can also edit the markdown file directly if you prefer not to use the CMS.</p>
@@ -71,9 +71,9 @@
         
         <entry>
             <title>A Story about monospace font</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-story-about-monospace-font/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2019/06/18/a-story-about-monospace-font.html"/>
             <updated>2019-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-story-about-monospace-font/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2019/06/18/a-story-about-monospace-font.html</id>
             <content type="html">
                 <![CDATA[
                 <p>The best way to demo a code post is to display a real life post, so check out this one from <a href="https://andy-bell.design/wrote/creating-a-full-bleed-css-utility/">andy-bell.design</a> about a full bleed CSS utility.</p>
@@ -114,9 +114,9 @@
         
         <entry>
             <title>A post with embeded samples</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-embeded-post/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2019/06/18/a-post-with-embeded-samples.html"/>
             <updated>2019-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-embeded-post/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2019/06/18/a-post-with-embeded-samples.html</id>
             <content type="html">
                 <![CDATA[
                 <p>The best way to demo a code post is to display a real life post, so check out this one from <a href="https://andy-bell.design/wrote/creating-a-full-bleed-css-utility/">andy-bell.design</a> about a full bleed CSS utility.</p>
@@ -157,9 +157,9 @@
         
         <entry>
             <title>A post with code samples</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/post-with-code-samples/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2018/06/18/a-post-with-code-samples.html"/>
             <updated>2018-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/post-with-code-samples/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2018/06/18/a-post-with-code-samples.html</id>
             <content type="html">
                 <![CDATA[
                 <p>Sometimes you want to break your components out of the constraints that they find themselves in. A common situation where this occurs is when you don’t have much control of the container that it exists in, such as a CMS main content area.</p>
@@ -198,9 +198,9 @@
         
         <entry>
             <title>A simple post</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-simple-post/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2017/06/18/a-simple-post.html"/>
             <updated>2017-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-simple-post/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2017/06/18/a-simple-post.html</id>
             <content type="html">
                 <![CDATA[
                 <p>A simple post to demonstrate how a normal blog post looks on Monospaced. Content is all set in the “Body” field as markdown and Eleventy transforms it into a proper HTML post. You can also edit the markdown file directly if you prefer not to use the CMS.</p>
@@ -229,9 +229,9 @@
         
         <entry>
             <title>A Story</title>
-            <link href="https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-story/"/>
+            <link href="https://engineersbox.github.io/website/eleventy-base-blog/2015/06/18/a-story.html"/>
             <updated>2015-06-18T00:00:00Z</updated>
-            <id>https://github.com/asvny/eleventy-blog-monospaced/eleventy-base-blog/posts/a-story/</id>
+            <id>https://engineersbox.github.io/website/eleventy-base-blog/2015/06/18/a-story.html</id>
             <content type="html">
                 <![CDATA[
                 <p>Sometimes you want to break your components out of the constraints that they find themselves in. A common situation where this occurs is when you don’t have much control of the container that it exists in, such as a CMS main content area.</p>
