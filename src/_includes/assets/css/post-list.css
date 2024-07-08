@@ -1,3 +1,6 @@
+@import "_normalize";
+@import "_variables";
+
 .PostList {
   list-style: none;
 }
