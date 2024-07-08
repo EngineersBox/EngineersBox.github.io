@@ -23,7 +23,7 @@ pre[class*="language-"] {
   -ms-hyphens: none;
   hyphens: none;
 
-  font-family: "Operator Mono", "Fira Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono",
+  font-family: var(--font-mono), "JetBrainsMono", "Fira Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono",
     monospace;
   font-weight: 400;
   font-size: 17px;
