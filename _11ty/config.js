@@ -55,16 +55,16 @@ module.exports = function (eleventyConfig) {
         .addPassthroughCopy('src/_redirects');
 
     return {
-        templateFormats: ['njk', 'md', 'html', '11ty.js'],
+        templateFormats: ['liquid', 'njk', 'md', 'html', '11ty.js'],
         dir: {
             input: 'src',
             includes: '_includes',
             data: '_data',
             output: '_site',
         },
-        markdownTemplateEngine: 'njk',
-        htmlTemplateEngine: 'njk',
-        dataTemplateEngine: 'njk',
+        markdownTemplateEngine: 'liquid',
+        htmlTemplateEngine: 'liquid',
+        dataTemplateEngine: 'liquid',
         passthroughFileCopy: true,
     };
 };

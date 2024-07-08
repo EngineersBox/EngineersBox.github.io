@@ -1,20 +1,19 @@
 
 module.exports = {
-  title: "Monospaced_",
-  description: "Monospaced is a eleventy blog theme template which is highly customizable and provides a reliable and accessible experience to the readers",
-  url: 'https://github.com/asvny/eleventy-blog-monospaced',
-  baseUrl: '/',
+  title: "EngineersBox DevBlog",
+  description: "EngineersBox developer blog of ongoing projects and interesting bits & pieces",
+  url: "https://engineersbox.github.io/website",
+  baseUrl: "/",
   maxPostsInHomePage: 5,
-  author: 'Asvny',
-  email: 'monospaced_@xyz.com',
+  author: "EngineersBox",
+  email: "<None>",
 
   gaAnalytics: null,
   currentYear: (new Date()).getFullYear(),
   includeServiceWorker: false,
 
   social: {
-    twitter: 'https://twitter.com/asvny_',
-    github: 'https://github.com/asvny',
-    email: 'annamalai.saro@gmail.com'
+    twitter: "https://twitter.com/EngineersBox",
+    github: "https://github.com/EngineersBox"
   }
 }
