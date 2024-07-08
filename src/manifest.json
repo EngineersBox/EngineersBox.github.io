@@ -1,7 +1,7 @@
 {
   "lang": "en",
-  "short_name": "Mono",
-  "name": "Monospaced_",
+  "short_name": "EBDB",
+  "name": "EngineersBox DevBlog",
   "icons": [
     {
       "src": "/assets/images/photo-150.jpg",
