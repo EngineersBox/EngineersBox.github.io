@@ -15,7 +15,7 @@
 }
 
 .Article {
-  font-family: system-ui, Helvetica, Arial, sans-serif;
+  font-family: var(--font-mono)
   font-size: 18px;
   line-height: 1.75;
   text-align: justify;

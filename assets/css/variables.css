@@ -1,6 +1,11 @@
+@font-face {
+	font-family: "Monocraft"
+	src: url("/assets/fonts/Monocraft-nerd-fonts-patched.tff")
+}
+
 :root {
-  --font-mono: "Roboto Mono", system-ui, Helvetica, Arial, sans-serif;
-  --font-body: system-ui, Helvetica, Arial, sans-serif;
+  --font-mono: "Monocraft", system-ui, Helvetica, Arial, sans-serif;
+  --font-body: "Monocraft", system-ui, Helvetica, Arial, sans-serif;
 
   --line-height: 1.5;
 
@@ -8,14 +13,14 @@
   --text-color: #32325a;
   --text-secondary-color: #68757b;
 
-  --dark-bg: #2d2a2a;
-  --dark-text-color: #fff;
+  --dark-bg: #212127;
+  --dark-text-color: #b5bdd9;
 
   --primary: #e41867;
   --primary-shadow: hsla(337, 81%, 49%, 0.12);
 
   --blockquote-color: #73728c;
-
+
   --separator-color: #d0d6d8;
   --focus-color: #ffa611;
 
@@ -29,10 +34,10 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #2d2d2d;
+  --bg: #212127;
 
-  --text-color: #fff;
-  --text-secondary-color: #a8bcc5;
+  --text-color: #b5bdd9;
+  --text-secondary-color: #8996c2;
   --blockquote-color: #bababd;
 
   --separator-color: #545353;
