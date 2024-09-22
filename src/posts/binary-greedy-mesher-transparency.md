@@ -11,7 +11,7 @@ tags:
 
 I am currently utilising a variant of TanTan's Binary Greedy Mesher from <https://github.com/TanTanDev/binary_greedy_mesher_demo> for an ongoing rewrite of Minecraft for the Playstation 1 (yep that one). Mine is translated into C, but is essentially a copy-and-paste of this repo's `greedy_mesher_optimized.rs`. If you would like to see my implemention in it's full janky glory, it can be found here in the [PSXMC repo](https://github.com/EngineersBox/PSX-Minecraft/blob/main/src/game/world/chunk/meshing/binary_greedy_mesher.c).
 
-At some later stage I will add blocks that will support partial transparency in the full texture (such as glass) and blocks with opaque textures with gaps (such as the upper half of doors or pistons). This necessitates transparency support, which the old mesher I have written, has. But using your new fancy, shiny and *blazingly fast* mesher, I want to support transparency there. So, here... we... go.
+At some later stage I will add blocks that will support partial transparency in the full texture (such as glass) and blocks with opaque textures with gaps (such as the upper half of doors or pistons). This necessitates transparency support, which the old mesher I have written, has. But using this new fancy, shiny and *blazingly fast* mesher, I want to support transparency there. So, here... we... go.
 
 ## Context
 
@@ -65,7 +65,7 @@ The last ops ensure that only the bits on the outer faces of a sequence of 1's i
 	</tr>
 </table>
 
-Great, this then gets used to build the plane data by creating hashmap entries for the voxel data for each set bit by retrieving the y (axial-specific) value by invoking u64::trailing_zeros() and combining with the x,z iterator values we are traversing through.
+Great, this then gets used to build the plane data by creating hashmap entries for the voxel data for each set bit by retrieving the y (axial-specific) value by invoking `u64::trailing_zeros()` and combining with the x,z iterator values we are traversing through.
 
 ## The Problem
 
@@ -395,8 +395,6 @@ Note **specifically**, that we get the trailing zeros as the y offset for this v
 ## Conclusion
 
 Now, theres an obvious caveat to this... you need to implement your mesh generation and subsequently the rendering pipeline such that transparency ordering is respected from the Z-axis (presumably through depth testing) here in order make use of this. This will however, guarantee that the absolute minimum amount of transparent faces are constructed in the mesh.
-
-You might wonder.. why is this an *issue* as opposed to a PR? Well that's because I wanted to post this here for discussion and leave it open to whether this is used by anyone (also up to repo maintainers as to whether they want to do anything with this at all). That being said, if this does indeed work as I have outlined (and I'm not a complete moron that has made an obvious mistake) then by all means I'm happy to PR a version of the mesher that has this transparency support.
 
 This was fun. ye.
 
