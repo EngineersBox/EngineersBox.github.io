@@ -16,7 +16,7 @@ let themeClass = {
 themeButton.classList.add(themeClass[html.dataset.theme || 'light'])
 
 /**
- *  Toggle between light/dark classes when the button is clicked and store the value in local 
+ *  Toggle between light/dark classes when the button is clicked and store the value in local
  *  localStorage which is used to know the selected theme on repeated visits
  */
 themeButton.addEventListener('click', event => {

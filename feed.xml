@@ -21,7 +21,7 @@
                 <![CDATA[
                 <h2 id="motivation"><a class="header-anchor" href="#motivation"></a> Motivation</h2>
 <p>I am currently utilising a variant of TanTan's Binary Greedy Mesher from <a href="https://github.com/TanTanDev/binary_greedy_mesher_demo">https://github.com/TanTanDev/binary_greedy_mesher_demo</a> for an ongoing rewrite of Minecraft for the Playstation 1 (yep that one). Mine is translated into C, but is essentially a copy-and-paste of this repo's <code>greedy_mesher_optimized.rs</code>. If you would like to see my implemention in it's full janky glory, it can be found here in the <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/main/src/game/world/chunk/meshing/binary_greedy_mesher.c">PSXMC repo</a>.</p>
-<p>At some later stage I will add blocks that will support partial transparency in the full texture (such as glass) and blocks with opaque textures with gaps (such as the upper half of doors or pistons). This necessitates transparency support, which the old mesher I have written, has. But using your new fancy, shiny and <em>blazingly fast</em> mesher, I want to support transparency there. So, here... we... go.</p>
+<p>At some later stage I will add blocks that will support partial transparency in the full texture (such as glass) and blocks with opaque textures with gaps (such as the upper half of doors or pistons). This necessitates transparency support, which the old mesher I have written, has. But using this new fancy, shiny and <em>blazingly fast</em> mesher, I want to support transparency there. So, here... we... go.</p>
 <h2 id="context"><a class="header-anchor" href="#context"></a> Context</h2>
 <p>Creating a mask of the voxels in the scene is done on an absolute basis, i.e. whether there is or isn't a block, marked by a bit on the relevant query axis in the mask array <code>col_face_masks</code>. This is generated using the neat shifting for left/right faces in the cull loop with:</p>
 <pre class="language-rust"><code class="language-rust"><span class="token comment">// set if current is solid and next is air.</span>
@@ -67,7 +67,7 @@ col_face_masks<span class="token punctuation">[</span><span class="token number"
 		</td>
 	</tr>
 </table>
-<p>Great, this then gets used to build the plane data by creating hashmap entries for the voxel data for each set bit by retrieving the y (axial-specific) value by invoking u64::trailing_zeros() and combining with the x,z iterator values we are traversing through.</p>
+<p>Great, this then gets used to build the plane data by creating hashmap entries for the voxel data for each set bit by retrieving the y (axial-specific) value by invoking <code>u64::trailing_zeros()</code> and combining with the x,z iterator values we are traversing through.</p>
 <h2 id="the-problem"><a class="header-anchor" href="#the-problem"></a> The Problem</h2>
 <p>We need some way of determining that for any given set bit, there is a following bit (relative to the direction that the face was generated for, by the shift direction) that is still visible through some form of transparency.</p>
 <p>More precisely, we want to be able to detect sequential bits that are pairings of solid and transparent voxels and include them both. Let's take an example where <code>0</code> = air, <code>1</code> = transparent and <code>2</code> = solid.</p>
@@ -357,7 +357,6 @@ col <span class="token operator">&amp;=</span> <span class="token operator">!</s
 <p>Note <strong>specifically</strong>, that we get the trailing zeros as the y offset for this voxel and then clear <strong>ONLY</strong> this current voxel while creating the entry. The voxel position is queried in the world and we subsequently create a hashmap entry making this possible. Simple.</p>
 <h2 id="conclusion"><a class="header-anchor" href="#conclusion"></a> Conclusion</h2>
 <p>Now, theres an obvious caveat to this... you need to implement your mesh generation and subsequently the rendering pipeline such that transparency ordering is respected from the Z-axis (presumably through depth testing) here in order make use of this. This will however, guarantee that the absolute minimum amount of transparent faces are constructed in the mesh.</p>
-<p>You might wonder.. why is this an <em>issue</em> as opposed to a PR? Well that's because I wanted to post this here for discussion and leave it open to whether this is used by anyone (also up to repo maintainers as to whether they want to do anything with this at all). That being said, if this does indeed work as I have outlined (and I'm not a complete moron that has made an obvious mistake) then by all means I'm happy to PR a version of the mesher that has this transparency support.</p>
 <p>This was fun. ye.</p>
 <h2 id="per-face-transparency"><a class="header-anchor" href="#per-face-transparency"></a> Per-Face Transparency</h2>
 <p>You could take this a step further an allow for per-face transparency controlled at a block level. To do that you refactor the definitions of <code>axis_cols</code> and <code>axis_cols_opaque</code> to be on use per-face arrays instead of per-axis:</p>
