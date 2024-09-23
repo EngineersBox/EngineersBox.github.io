@@ -1,11 +1,12 @@
 @font-face {
-	font-family: "Monocraft"
-	src: url("/assets/fonts/Monocraft-nerd-fonts-patched.ttc")
+	font-family: "Monocraft Nerd Font";
+	src: url("/assets/fonts/MonocraftNerdFontComplete.ttf") format("truetype");
+	font-display: auto;
 }
 
 :root {
-  --font-mono: "Monocraft", system-ui, Helvetica, Arial, sans-serif;
-  --font-body: "Monocraft", system-ui, Helvetica, Arial, sans-serif;
+  --font-mono: "Monocraft Nerd Font", system-ui, Helvetica, Arial, sans-serif;
+  --font-body: "Monocraft Nerd Font", system-ui, Helvetica, Arial, sans-serif;
 
   --line-height: 1.5;
 
