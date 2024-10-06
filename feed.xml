@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xml:base="https://engineersbox.github.io" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title></title>
+    <title>EngineersBox DevBlog</title>
     <link>https://engineersbox.github.io</link>
-    <atom:link href="https://engineersbox.github.iofeed.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://engineersbox.github.io/feed.xml" rel="self" type="application/rss+xml" />
     <description>EngineersBox developer blog of ongoing projects and interesting bits &amp; pieces</description>
     <language>en</language>
     
