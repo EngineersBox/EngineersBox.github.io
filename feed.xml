@@ -9,7 +9,7 @@
     
     <item>
       <title>Transparency with binary greedy meshing</title>
-      <link>https://engineersbox.github.io/eleventy-base-blog/website/2024/09/19/transparency-with-binary-greedy-meshing.html</link>
+      <link>https://engineersbox.github.io/website/2024/09/19/transparency-with-binary-greedy-meshing.html</link>
       <description>
 					<![CDATA[
 					<h2 id="motivation"><a class="header-anchor" href="#motivation"></a> Motivation</h2>
@@ -433,7 +433,7 @@ col <span class="token operator">&amp;=</span> <span class="token operator">!</s
 			</description>
       <pubDate>Thu, 19 Sep 2024 00:00:00 +0000</pubDate>
       <dc:creator>EngineersBox</dc:creator>
-      <guid>https://engineersbox.github.io/eleventy-base-blog/website/2024/09/19/transparency-with-binary-greedy-meshing.html</guid>
+      <guid>https://engineersbox.github.io/website/2024/09/19/transparency-with-binary-greedy-meshing.html</guid>
     </item>
   </channel>
 </rss>
