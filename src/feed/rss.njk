@@ -4,9 +4,9 @@ permalink: feed.xml
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xml:base="{{ site.url }}" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>{{ site.name }}</title>
+    <title>{{ site.title}}</title>
     <link>{{ site.url }}</link>
-    <atom:link href="{{ site.url }}{{ permalink }}" rel="self" type="application/rss+xml" />
+    <atom:link href="{{ site.url }}/{{ permalink }}" rel="self" type="application/rss+xml" />
     <description>{{ site.description }}</description>
     <language>{{ site.language or page.lang }}</language>
     {%- for post in collections.posts | reverse %}
