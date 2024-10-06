@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "build": "npx @11ty/eleventy --config=_11ty/config.js",
-    "build-ghpages": "npx @11ty/eleventy --config=_11ty/config.js --pathprefix=/eleventy-base-blog/",
+    "build-ghpages": "npx @11ty/eleventy --config=_11ty/config.js",
     "start": "npx @11ty/eleventy --config=_11ty/config.js --serve --quiet",
     "debug": "DEBUG=Eleventy* npx @11ty/eleventy --config=_11ty/config.js",
     "debugstart": "DEBUG=Eleventy* npx @11ty/eleventy --config=_11ty/config.js --serve --quiet",
