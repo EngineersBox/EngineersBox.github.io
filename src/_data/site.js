@@ -2,7 +2,8 @@
 module.exports = {
   title: "EngineersBox DevBlog",
   description: "EngineersBox developer blog of ongoing projects and interesting bits & pieces",
-  url: "https://engineersbox.github.io/website",
+  url: "https://engineersbox.github.io",
+	language: "en",
   baseUrl: "/",
   maxPostsInHomePage: 5,
   author: "EngineersBox",
