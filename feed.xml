@@ -1,25 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xml:base="https://engineersbox.github.io" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
     <title></title>
-    <subtitle></subtitle>
-    <link href="https://engineersbox.github.io/websitefeed.xml" rel="self"/>
-    <link href="https://engineersbox.github.io/website/"/>
-    <updated>2024-09-19T00:00:00Z</updated>
-    <id>https://engineersbox.github.io/website</id>
-    <author>
-        <name>EngineersBox</name>
-        <email>&lt;None&gt;</email>
-    </author>
+    <link>https://engineersbox.github.io</link>
+    <atom:link href="https://engineersbox.github.iofeed.xml" rel="self" type="application/rss+xml" />
+    <description>EngineersBox developer blog of ongoing projects and interesting bits &amp; pieces</description>
+    <language>en</language>
     
-        
-        <entry>
-            <title>Transparency with binary greedy meshing</title>
-            <link href="https://engineersbox.github.io/website/eleventy-base-blog/website/2024/09/19/transparency-with-binary-greedy-meshing.html"/>
-            <updated>2024-09-19T00:00:00Z</updated>
-            <id>https://engineersbox.github.io/website/eleventy-base-blog/website/2024/09/19/transparency-with-binary-greedy-meshing.html</id>
-            <content type="html">
-                <![CDATA[
-                <h2 id="motivation"><a class="header-anchor" href="#motivation"></a> Motivation</h2>
+    <item>
+      <title>Transparency with binary greedy meshing</title>
+      <link>https://engineersbox.github.io/eleventy-base-blog/website/2024/09/19/transparency-with-binary-greedy-meshing.html</link>
+      <description>
+					<![CDATA[
+					<h2 id="motivation"><a class="header-anchor" href="#motivation"></a> Motivation</h2>
 <p>I am currently utilising a variant of TanTan's Binary Greedy Mesher from <a href="https://github.com/TanTanDev/binary_greedy_mesher_demo">https://github.com/TanTanDev/binary_greedy_mesher_demo</a> for an ongoing rewrite of Minecraft for the Playstation 1 (yep that one). Mine is translated into C, but is essentially a copy-and-paste of this repo's <code>greedy_mesher_optimized.rs</code>. If you would like to see my implemention in it's full janky glory, it can be found here in the <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/main/src/game/world/chunk/meshing/binary_greedy_mesher.c">PSXMC repo</a>.</p>
 <p>At some later stage I will add blocks that will support partial transparency in the full texture (such as glass) and blocks with opaque textures with gaps (such as the upper half of doors or pistons). This necessitates transparency support, which the old mesher I have written, has. But using this new fancy, shiny and <em>blazingly fast</em> mesher, I want to support transparency there. So, here... we... go.</p>
 <h2 id="context"><a class="header-anchor" href="#context"></a> Context</h2>
@@ -436,8 +429,11 @@ col <span class="token operator">&amp;=</span> <span class="token operator">!</s
 <span class="token punctuation">}</span></code></pre>
 <p>It's definitely going to cost a bit more in terms of cycle time, but depending on the level of control you want, this gives you a very efficient way to have complete opacity control. Much faster than a non-binary meshing approach I would think.</p>
 
-                ]]>
-            </content>
-        </entry>
-    
-</feed>
+					]]>
+			</description>
+      <pubDate>Thu, 19 Sep 2024 00:00:00 +0000</pubDate>
+      <dc:creator>EngineersBox</dc:creator>
+      <guid>https://engineersbox.github.io/eleventy-base-blog/website/2024/09/19/transparency-with-binary-greedy-meshing.html</guid>
+    </item>
+  </channel>
+</rss>
