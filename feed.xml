@@ -435,5 +435,434 @@ col <span class="token operator">&amp;=</span> <span class="token operator">!</s
       <dc:creator>EngineersBox</dc:creator>
       <guid>https://engineersbox.github.io/website/2024/09/19/transparency-with-binary-greedy-meshing.html</guid>
     </item>
+    
+    <item>
+      <title>Compile-time crafting recipe trees</title>
+      <link>https://engineersbox.github.io/website/2024/09/19/compile-time-crafting-recipe-trees.html</link>
+      <description>
+					<![CDATA[
+					<h2 id="motivation"><a class="header-anchor" href="#motivation"></a> Motivation</h2>
+<p>Within any game that relies on fixed-recipe crafting mechanics, you need an efficient way to determine if a some pattern of items resolves to a known recipe. This is true of Minecraft and thus true of my <a href="https://github.com/EngineersBox/PSX-Minecraft">PSXMC</a> project. This problem is one that has been solved many times from naive to extremely efficient and implementation specific.</p>
+<h2 id="context"><a class="header-anchor" href="#context"></a> Context</h2>
+<p>Pattern matching for recipes could be seen as specic to the crafting medium (i.e. crafting table, furance, machines, etc) but this has the obvious problem of needing separate implementations per-medium which is way to much of a tradeoff for a Minecraft on a PS1. Especially if we want to allow for others to modify the game and add their own recipes and mediums.</p>
+<p>In addition to this, we want to avoid, at any cost, the necessity to build the crafting recipes in memory at runtime. Remember the PS1 has at most 2MiB of memory to play with, so this is not a worthwhile consumption of that. Taking advantage of compile-time structuring and any optimisations that we can do therein would be ideal.</p>
+<h3 id="requirements"><a class="header-anchor" href="#requirements"></a> Requirements</h3>
+<p>Instead I'd like to build something general. So the set of requirements that need to be satisfied are:</p>
+<ol>
+<li>Compile-time generated recipe definitions</li>
+<li>Definable pattern size and dimensions</li>
+<li>Bounded complexity when traversing recipes at runtime</li>
+<li>Shaped and shapeless crafting adds no representational overhead</li>
+</ol>
+<h2 id="implementation-approach"><a class="header-anchor" href="#implementation-approach"></a> Implementation Approach</h2>
+<p>Before getting too heavy handed, it's important to do a bit of a literature review and analysis of existing approaches to know if a new algorithm is needed to solve these problems of whether it's possible to leech off someone else's hard work.</p>
+<p>TLDR: Leech time.</p>
+<h3 id="recipe-tree-encoding"><a class="header-anchor" href="#recipe-tree-encoding"></a> Recipe Tree Encoding</h3>
+<p>Let's tackle the last three of the four requirements as they will argurably have more of an impact than the first. The first is also somewhat dictated by our approach here as well.</p>
+<ol>
+<li>Definable pattern size and dimensions</li>
+<li>Bounded complexity when traversing recipes at runtime</li>
+<li>Shaped and shapeless crafting adds no representational overhead</li>
+</ol>
+<p>Structurally, what we want to do is be able to construct a tree that contains the minimum branch depth for any given recipe, where each node is a recipe ingredient. More specifically, for any recipe dimensions, we want to compute the quadralateral hull (smallest quad that surrounds the recipe), then for each of those nodes (in some order like top left to bottom right), string the recipe together as a set of nodes, each a child of the previous ingredient.</p>
+<p>It turns out that this is already a thing, asked by David Eyk and answered by Jonathan Dickinson on the game development stack exchange: <a href="https://gamedev.stackexchange.com/questions/21586/how-could-i-implement-something-like-minecrafts-crafting-grid?newreg=83d370c8faf34ab4aa8b4dc320f156f6">How could I implement something like Minecraft's crafting grid?</a></p>
+<p>So let's just steal that and the example code written in C# for an <a href="https://gist.github.com/jcdickinson/1534466">example implementation</a>.</p>
+<p>This does almost exactly what was previously outlined. You take a recipe pattern with some dimensions that surround it. For example a line of torches (represented here as <code>T</code>) in a 3x3 grid, which is either a 3x1 or 1x3 line:</p>
+<pre><code>+-+-+-+    +-+-+-+
+| | | |    | |T| |
++-+-+-+    +-+-+-+
+|T|T|T| or | |T| |
++-+-+-+    +-+-+-+
+| | | |    | |T| |
++-+-+-+    +-+-+-+
+</code></pre>
+<p>Then take the the ingredients and turn each one into a node. Traversing from the top left of the pattern to the bottom right, we insert each ingredient node a child of the previous (starting with a dummy root node).</p>
+<pre><code>[R]-[T]-[T]-[T]
+</code></pre>
+<p>We then finalise this pattern with a leaf node that encodes the dimensions of the recipe (ordered) to the resulting item (<code>W</code> is a torch wall and <code>S</code> is a super torch):</p>
+<pre><code>                [1x3,S]
+               /
+[R]-[T]-[T]-[T]
+               \
+                [3x1,W]
+</code></pre>
+<p>So now, when we query a pattern in the recipe tree, we just traverse from the top left to the bottom right of the pattern and determine if a child node exists for each recipe ingredient. If any are missing, there is no matching recipe. If we make it to a child node and there exists a leaf with matching dimensions then we have a matching recipe.</p>
+<p>The beauty of this is that recipe nodes are shared between recipes that have common ingredients if their patterns overlapy. This ensures we use the minimum number of nodes to encode the recipes. Each leaf node stores only the dimensions and the result ingredient which is uniquely identifiable no matter if it is shaped or unshaped.</p>
+<p>Jonathan Dickinson (what an absolute legend) was kind enough to grace our much undeserving selves with a fantastic illustration (that is not ASCII art, so actually readable) on the post that makes this a lot clearer of how shared nodes and dimensionality work:</p>
+<p><img src="/assets/images/recipe_tree.png" alt="Recipe Tree"></p>
+<p>He also provides a fully fledged implementation of this in C# via <a href="https://gist.github.com/jcdickinson/1534466">GitHub</a>. Later on, when detailing the full implementation in C, reference will be made to this, so it is worth checking out in advance for extra clarity.</p>
+<h3 id="compile-time-trees"><a class="header-anchor" href="#compile-time-trees"></a> Compile-Time Trees</h3>
+<p>Last on the list of requirements is compile-time representation of recipe patterns. Given that the approach that solved the other three requirements leans heavily on tree-based structuring, an arbitrary-depth compile-time tree would be ideal for this.</p>
+<p>As per usual, this is a solved problem as well, courtesy of u/KJ7LNW's post <a href="https://www.reddit.com/r/C_Programming/comments/1b5y9r9/compiletime_initialization_of_arbitrarydepth/">Compime-time initialization of abitrary-depth tree-like structs</a> on the r/C_programming subreddit and some input from u/jaskij's comment. The idea behind this is to create a single node definition that can store arbitrarily many child nodes (of the same type) wihtin it.</p>
+<h4 id="c-durations-and-initialisation"><a class="header-anchor" href="#c-durations-and-initialisation"></a> C Durations and Initialisation</h4>
+<p>C (and many other languages) have two main classifiers of when a value or layout is know at: runtime and compile time. These are determined by the <em>storage duration</em> of the value being initialised. Where objects with a static duration are declared either outside functions, or inside them with the keyword <code>extern</code> or <code>static</code> as part of the declaration. They can <code>only</code> be initialised at compile time [^1]: <a href="https://webhome.phy.duke.edu/~rgb/General/c_book/c_book/chapter6/initialization.html">https://webhome.phy.duke.edu/~rgb/General/c_book/c_book/chapter6/initialization.html</a>. All other declarations are considered runtime known durations and referred to as having automatic durations (with some exceptions where the storage and layout of the automatic duration object is compile-time know and the values are runtime known, though this is generally a compiler extension).</p>
+<p>Compile-time initialisation is done via constant expressions, which is guaranteed to be fully known at compile-time, whereby the evaluated value could replace the expression and not change any program semantics. Modern C standards allow for simple values to be compile-time values as well as expressions (structs, arrays, enums, unions, etc) with some extra clauses on how they are declared and used.</p>
+<p>Given the tree we want to utilise relies on structs and arrays (subseqeutlypointers) we need to pay attention to the rules for these.</p>
+<h5 id="pointers"><a class="header-anchor" href="#pointers"></a> Pointers</h5>
+<p>If we have an object that has a static storage duration or is a pointer to a function (that is known to the current compilation unit), then this is a valid compile-time value that is guaranteed to have a known position, alignment and thus address. From these we can take the address as a compile-time constant, known as an address constant (this includes <code>NULL</code> pointers and literal pointer integers). They behave identically to runtime know pointers in all ways. This allows for compile-time objects to referenced in other compile-time (or runtime) values.</p>
+<pre class="language-c"><code class="language-c">
+ <span class="token keyword">void</span> <span class="token function">example</span><span class="token punctuation">(</span><span class="token keyword">int</span> value<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"Value was: %d\n"</span><span class="token punctuation">,</span> value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">typedef</span> <span class="token keyword">void</span> <span class="token punctuation">(</span><span class="token operator">*</span>ExampleFunc<span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">int</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Address constant is a pointer to the function `example`</span>
+<span class="token comment">// which has a fixed location in the program at compile-time</span>
+<span class="token comment">// which does not change when loaded into memory. Thus is a</span>
+<span class="token comment">// valid constant value.</span>
+<span class="token keyword">const</span> ExampleFunc func <span class="token operator">=</span> example<span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span> comptime_string <span class="token operator">=</span> <span class="token string">"test string"</span><span class="token punctuation">;</span>
+<span class="token comment">// Valid address constant as `comptime_string` is known</span>
+<span class="token comment">// to have a fixed layout and memory location at compile</span>
+<span class="token comment">// time, initialised by a legal comptile-time value.</span>
+<span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span><span class="token operator">*</span> comptime_string_ref <span class="token operator">=</span> <span class="token operator">&amp;</span>comptime_string<span class="token punctuation">;</span></code></pre>
+<h5 id="arrays"><a class="header-anchor" href="#arrays"></a> Arrays</h5>
+<p>There are two main types of array initialisation that are legal at compile-time:</p>
+<ol>
+<li>Explicity sizes array with or without initialisers</li>
+<li>Explitictly sized leaf array of inferred sized parent arrays</li>
+</ol>
+<p>In the first case we have trivially instantiable arrays that have all dimensions known at compile time. For example:</p>
+<pre class="language-c"><code class="language-c"><span class="token comment">// This is strictly unsized</span>
+<span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span> string <span class="token operator">=</span> <span class="token string">"value"</span><span class="token punctuation">;</span> <span class="token comment">// or  { 'v', 'a', 'l', 'u', 'e', '\0' };</span>
+<span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span> array_1d<span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token comment">// Auto-sizes to a size of 2 char pointers</span>
+<span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span> inline_array_1d<span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span> <span class="token string">"value1"</span><span class="token punctuation">,</span> <span class="token string">"value2"</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span> array_2d<span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">;</span></code></pre>
+<p>For the second case, we could have nested arrays of arbitrary dimensions so long as the leaf array (at the tail end of declaration) is known at compile time.</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">const</span> <span class="token keyword">char</span><span class="token operator">*</span> inline_array_2d<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+	<span class="token punctuation">{</span> <span class="token string">"arr1 val1"</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token punctuation">{</span> <span class="token string">"arr2 val1"</span> <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre>
+<h5 id="structs"><a class="header-anchor" href="#structs"></a> Structs</h5>
+<p>Structures can be intiialised at compile-time if all of their members either either constant expressions of have values that are compile-time deducable. There are a lot of possible intialisation for structure members depending on their declarations and layout, so we will cull this down to only what we are interested in, other than trivially compile-time values.</p>
+<p>Suppose the following structure definition, where we want to have a compile-time structure with arbitrarily many nested declarations of the same structure:</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">Example</span> <span class="token punctuation">{</span>
+	<span class="token keyword">int</span> nested_count<span class="token punctuation">;</span>
+	<span class="token keyword">const</span> <span class="token keyword">struct</span> <span class="token class-name">Example</span><span class="token operator">*</span><span class="token operator">*</span> nested<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> Example<span class="token punctuation">;</span></code></pre>
+<p>Given that the nested structures are arrays of pointers to structs, how do we go about instantiating this at compile-time? We can take advantage of the static addresses and for compile-time pointers as well as compile-time arrays. More specifically, if we can construct an array of nested objects that is known at compile-time, then the array's base address can be referenced for a static address to the array. Doing so guarantees that we have every aspect of the structure known at compile time:</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">const</span> Example<span class="token operator">*</span> nested<span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+	<span class="token operator">&amp;</span><span class="token punctuation">(</span>Example<span class="token punctuation">)</span><span class="token punctuation">{</span>
+		<span class="token punctuation">.</span>nested_count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+		<span class="token punctuation">.</span>nested <span class="token operator">=</span> <span class="token constant">NULL</span>
+	<span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token operator">&amp;</span><span class="token punctuation">(</span>Example<span class="token punctuation">)</span><span class="token punctuation">{</span>
+		<span class="token punctuation">.</span>nested_count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+		<span class="token punctuation">.</span>nested <span class="token operator">=</span> <span class="token constant">NULL</span>
+	<span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> Example example <span class="token operator">=</span> <span class="token punctuation">(</span>Example<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+	<span class="token punctuation">.</span>nested_count <span class="token operator">=</span> <span class="token number">2</span><span class="token punctuation">,</span>
+	<span class="token punctuation">.</span>nested <span class="token operator">=</span> nested<span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre>
+<p>We can take this a step further and remove the <code>const</code> qualifer from the structure definition and inline the initialisation of the nested arrays:</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">const</span> Example example <span class="token operator">=</span> <span class="token punctuation">(</span>Example<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+	<span class="token punctuation">.</span>nested_count <span class="token operator">=</span> <span class="token number">2</span><span class="token punctuation">,</span>
+	<span class="token punctuation">.</span>nested <span class="token operator">=</span> <span class="token punctuation">(</span>Example<span class="token operator">*</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+		<span class="token operator">&amp;</span><span class="token punctuation">(</span>Example<span class="token punctuation">)</span><span class="token punctuation">{</span>
+			<span class="token punctuation">.</span>nested_count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+			<span class="token punctuation">.</span>nested <span class="token operator">=</span> <span class="token constant">NULL</span>
+		<span class="token punctuation">}</span><span class="token punctuation">,</span>
+		<span class="token operator">&amp;</span><span class="token punctuation">(</span>Example<span class="token punctuation">)</span><span class="token punctuation">{</span>
+			<span class="token punctuation">.</span>nested_count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+			<span class="token punctuation">.</span>nested <span class="token operator">=</span> <span class="token constant">NULL</span>
+		<span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre>
+<p>Now it's starting to look like a tree!</p>
+<h2 id="constructing-recipe-trees"><a class="header-anchor" href="#constructing-recipe-trees"></a> Constructing Recipe Trees</h2>
+<p>Now that we have covered the C concepts necessary to build trees at compile-time, as well as the structuring approach for recipes themselves, we can dive into the full compile-time recipe tree approach. First, let's start with constructing a recipe node that represents an ingredient in the tree of patterns. We will do so in the format of the nested struct layout we defined in the previous section.</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">RecipeNode</span> <span class="token punctuation">{</span>
+	<span class="token comment">/**
+	 * @brief Recipe item ingredient for this position.
+	 *        marked by id and metadata id
+	 */</span>
+	CompositeID item<span class="token punctuation">;</span>
+    u16 stack_size<span class="token punctuation">;</span>
+	<span class="token comment">/**
+	 * @brief Number of elements in `nodes`
+	 */</span>
+	u8 node_count<span class="token punctuation">;</span>
+	<span class="token comment">/**
+	 * @brief Number of elements in `results`
+	 */</span>
+	u8 result_count<span class="token punctuation">;</span>
+	<span class="token comment">/**
+	* @brief Contains the result of the recipe taking the items in the
+	*        the tree up until this node. This should be null when
+	*        `result_count`is `NULL`endcode. Otherwise the number of
+	*        elements in this array should be equal to `result_count`
+	*/</span>
+	RecipeResults<span class="token operator">*</span><span class="token operator">*</span> results<span class="token punctuation">;</span>
+	<span class="token comment">/**
+	* @brief Next items in the recipe, ordered by item IDs. Note
+	*        that this should be null when @code node_count@endcode
+	*        is `NULL`. Otherwise the number of elements in this
+	*        array should be equal to `node_count`
+	*/</span>
+	<span class="token keyword">struct</span> <span class="token class-name">RecipeNode</span><span class="token operator">*</span><span class="token operator">*</span> nodes<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> RecipeNode<span class="token punctuation">;</span></code></pre>
+<p>These nodes store a single item by it's ID and metadata ID, represented here as the <code>CompositeID</code> type (which we will come back to later). All other fields are essentially tree representation data. A can contain any number of children via the <code>nodes</code> sized by the <code>node_count</code> field. These child nodes are arrays of of the node struct layout. The <code>results</code> field here contains an array of dimensionally unique results for the given pattern as there may be multiple ways to orient the same recipe (i.e vertically or horizontally). Each of these results are matched against the input pattern to find a match.</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">Dimension</span> <span class="token punctuation">{</span>
+	u8 width<span class="token punctuation">;</span>
+	u8 height<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> Dimension<span class="token punctuation">;</span>
+
+<span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">RecipeResult</span> <span class="token punctuation">{</span>
+	<span class="token comment">/**
+	 * @brief Recipe item ingredient for this position.
+	 *        marked by id and metadata id
+	 */</span>
+	CompositeID item<span class="token punctuation">;</span>
+	u16 stack_size<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> RecipeResult<span class="token punctuation">;</span>
+
+<span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">RecipeResults</span> <span class="token punctuation">{</span>
+	<span class="token comment">/**
+	 * @brief Dimensions of the recipe in a crafting grid, the items in
+	 *        the tree as parents to this result node are positioned in
+	 *        the grid from the top left to bottom right. This allows the
+	 *        recipe to be positioned anywhere and only be constrained to
+	 *        the pattern itself.
+	 */</span>
+	Dimension dimension<span class="token punctuation">;</span>
+	u32 result_count<span class="token punctuation">;</span>
+	RecipeResult<span class="token operator">*</span><span class="token operator">*</span> results<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> RecipeResults<span class="token punctuation">;</span></code></pre>
+<p>Taking a look at the <code>RecipeResults</code> structure, we can see they are characterised by the <code>results</code> field is an array of results for each output slot the recipe returns results to. This allows for the recipe tree to be used for multi-output recipes (i.e. machines) as well as single output like crafting tables. The <code>dimension</code> field encodes the layout of the nodes based on the width and height of the quadralateral hull of the pattern.</p>
+<blockquote>
+<p>NOTE:<br>
+As an side the 16-bit stack-size variable is probably overkill but it lends nicely to ensuring that the <code>RecipeResult</code> struct layout is packed well with no extra padding because <code>CompositeID</code> is also 16-bit. This is a trade-off made to ensure the layout efficiency of the tree and also maximise usability, but that may vary if you need very large stack sizes, exceeding 65,535.</p>
+<p>PSXMC actually only uses 8-bit unsigned integers for stack sizes on items, maxing out the stack sizes to 255, so realistically I could drop this to a <code>u8</code> with another <code>u8</code> of padding, but it makes this write-up a bit more convoluted to look at with the struct definitions.</p>
+</blockquote>
+<p>Lastly, let's take a look at the <code>CompositeID</code> definition.</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">typedef</span> <span class="token keyword">union</span> CompositeID <span class="token punctuation">{</span>
+	<span class="token keyword">struct</span> <span class="token punctuation">{</span>
+		<span class="token comment">// Lower bits</span>
+		u8 metadata<span class="token punctuation">;</span>
+		<span class="token comment">// Higher bits</span>
+		EItemID id<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span> separated<span class="token punctuation">;</span>
+	u16 data<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> CompositeID<span class="token punctuation">;</span></code></pre>
+<p>Initially, it may seem strange that we have a union representation of the ID and metadata IDs, but if we take a step back and consider what needs to happen during a traversal of this tree when querying, it becomes much clearer as to why. When a pattern is being queried, we walk the tree searching for child nodes at each level that much the current item in the pattern we are looking for a match on. There may be quite a few child nodes in the <code>nodes</code> array of a <code>RecipeNode</code> instance, and a linear search seems like a generally bad approach for anything other than a few elements. At the same time we don't want an expensive array traversal algorithm because it is unlikely that there will be many child nodes. So a binary search is a nice middle ground, and also easy to implement.</p>
+<p>An item is uniquely definined by firstly it's ID between distinct items, and secondarily by it's metadata ID as variants of the same item. A naive solution would be to have nested arrays of reults based on ID and them metadata ID within and binary search both times, however, given one is a subset of the other, we can instead merge the two into one value, where we guarantee that the item ID is stricly larger (in each step) than all the valid metadata IDs that denote variants of it. As such if we use the upper half of a 16-bit integer for the item ID and then the lower 8-bits as the metadata ID, we can indeed guarantee this property. When we do a binary search over this composite value, we can guarantee that by traversing left or right of the current value, we first stricly increase or decrease the metadata ID, and then the main item ID:</p>
+<pre class="language-c"><code class="language-c"><span class="token punctuation">[</span>       ID<span class="token operator">:</span> <span class="token number">1</span>     <span class="token punctuation">]</span>   <span class="token punctuation">[</span> ID<span class="token operator">:</span> <span class="token number">2</span> <span class="token punctuation">]</span>
+<span class="token punctuation">[</span>M<span class="token operator">-</span>ID<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">]</span> <span class="token punctuation">[</span>M<span class="token operator">-</span>ID<span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">]</span>   <span class="token punctuation">[</span>M<span class="token operator">-</span>ID<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">]</span></code></pre>
+<p>Is the same as</p>
+<pre class="language-c"><code class="language-c"><span class="token punctuation">[</span>ID<span class="token operator">:</span> <span class="token number">1</span> M<span class="token operator">-</span>ID<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">]</span> <span class="token punctuation">[</span>ID<span class="token operator">:</span> <span class="token number">1</span> M<span class="token operator">-</span>ID<span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">]</span> <span class="token punctuation">[</span>ID<span class="token operator">:</span> <span class="token number">2</span> M<span class="token operator">-</span>ID<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">]</span></code></pre>
+<p>Thus the <code>CompositeID</code> is born and binary search is trivially implementable just using integer comparison of the <code>data</code> field of the union which is the whole 16-bit integer.</p>
+<pre class="language-c"><code class="language-c">
+RecipeNode<span class="token operator">*</span> <span class="token function">recipeNodeGetNext</span><span class="token punctuation">(</span><span class="token keyword">const</span> RecipeNode<span class="token operator">*</span> node<span class="token punctuation">,</span> <span class="token keyword">const</span> RecipePatternEntry<span class="token operator">*</span> pattern<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+	<span class="token keyword">if</span> <span class="token punctuation">(</span>node<span class="token operator">-></span>nodes <span class="token operator">==</span> <span class="token constant">NULL</span> <span class="token operator">||</span> node<span class="token operator">-></span>node_count <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+		<span class="token keyword">return</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+	<span class="token comment">// NOTE: These need to be signed otherwise we can get upper to</span>
+	<span class="token comment">//       be u32::MAX if there is only one element in the array</span>
+	<span class="token comment">//       and it doesn't match the item</span>
+	i32 lower <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+	i32 mid<span class="token punctuation">;</span>
+	i32 upper <span class="token operator">=</span> node<span class="token operator">-></span>node_count <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">;</span>
+	<span class="token keyword">while</span> <span class="token punctuation">(</span>lower <span class="token operator">&lt;=</span> upper<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+		mid <span class="token operator">=</span> <span class="token punctuation">(</span>lower <span class="token operator">+</span> upper<span class="token punctuation">)</span> <span class="token operator">>></span> <span class="token number">1</span><span class="token punctuation">;</span>
+		RecipeNode<span class="token operator">*</span> next_node <span class="token operator">=</span> node<span class="token operator">-></span>nodes<span class="token punctuation">[</span>mid<span class="token punctuation">]</span><span class="token punctuation">;</span>
+		<span class="token keyword">if</span> <span class="token punctuation">(</span>next_node<span class="token operator">-></span>item<span class="token punctuation">.</span>data <span class="token operator">==</span> pattern<span class="token operator">-></span>id<span class="token punctuation">.</span>data<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span>next_node<span class="token operator">-></span>stack_size <span class="token operator">&lt;</span> pattern<span class="token operator">-></span>stack_size<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token comment">// Number of items in the slot is insufficient</span>
+                <span class="token keyword">return</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+			<span class="token keyword">return</span> next_node<span class="token punctuation">;</span>
+		<span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>next_node<span class="token operator">-></span>item<span class="token punctuation">.</span>data <span class="token operator">></span> pattern<span class="token operator">-></span>id<span class="token punctuation">.</span>data<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+			upper <span class="token operator">=</span> mid <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">;</span>
+		<span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+			lower <span class="token operator">=</span> mid <span class="token operator">+</span> <span class="token number">1</span><span class="token punctuation">;</span>
+		<span class="token punctuation">}</span>
+	<span class="token punctuation">}</span>
+	<span class="token keyword">return</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<h3 id="support-macros-and-tree-definitions"><a class="header-anchor" href="#support-macros-and-tree-definitions"></a> Support Macros and Tree Definitions</h3>
+<p>When we cosntruct a tree the type definitions are required to be explicit as compilers tend to deduce the incorrect types or necessitate explicit types when it comes to the compile-time array declarations. As such three sets of support macros exist to make the tree definition process much simpler:</p>
+<pre class="language-c"><code class="language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">RECIPE_LIST</span> <span class="token expression"><span class="token punctuation">(</span>RecipeNode<span class="token operator">*</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span></span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">RECIPE_ITEM</span> <span class="token expression"><span class="token operator">&amp;</span><span class="token punctuation">(</span>RecipeNode<span class="token punctuation">)</span></span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">RECIPE_RESULTS_LIST</span> <span class="token expression"><span class="token punctuation">(</span>RecipeResults<span class="token operator">*</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span></span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">RECIPE_RESULTS_ITEM</span> <span class="token expression"><span class="token operator">&amp;</span><span class="token punctuation">(</span>RecipeResults<span class="token punctuation">)</span></span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">RECIPE_RESULT_LIST</span> <span class="token expression"><span class="token punctuation">(</span>RecipeResult<span class="token operator">*</span><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span></span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">RECIPE_RESULT_ITEM</span> <span class="token expression"><span class="token operator">&amp;</span><span class="token punctuation">(</span>RecipeResult<span class="token punctuation">)</span></span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name function">RECIPE_COMPOSITE_ID</span><span class="token expression"><span class="token punctuation">(</span>_id<span class="token punctuation">,</span> _metadata<span class="token punctuation">)</span> <span class="token punctuation">{</span> </span><span class="token punctuation">\</span>
+    <span class="token expression"><span class="token punctuation">.</span>separated<span class="token punctuation">.</span>metadata <span class="token operator">=</span> _metadata<span class="token punctuation">,</span> </span><span class="token punctuation">\</span>
+    <span class="token expression"><span class="token punctuation">.</span>separated<span class="token punctuation">.</span>id <span class="token operator">=</span> _id </span><span class="token punctuation">\</span>
+<span class="token expression"><span class="token punctuation">}</span></span></span></code></pre>
+<p>This means that a simple tree can be defined via tokens and brace initialisation very easily:</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">const</span> RecipeNode tree <span class="token operator">=</span> RECIPE_ITEM <span class="token punctuation">{</span>
+	<span class="token punctuation">.</span>item <span class="token operator">=</span> <span class="token function">RECIPE_COMPOSITE_ID</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token punctuation">.</span>stack_size <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+	<span class="token punctuation">.</span>result_count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+	<span class="token punctuation">.</span>node_count <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span>
+	<span class="token punctuation">.</span>results <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">,</span>
+	<span class="token punctuation">.</span>nodes <span class="token operator">=</span> RECIPE_LIST <span class="token punctuation">{</span>
+		<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token operator">=</span>RECIPE_ITEM <span class="token punctuation">{</span>
+			<span class="token punctuation">.</span>item <span class="token operator">=</span> <span class="token function">RECIPE_COMPOSITE_ID</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+            <span class="token punctuation">.</span>stack_size <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span>
+			<span class="token punctuation">.</span>result_count <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span>
+			<span class="token punctuation">.</span>node_count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">,</span>
+			<span class="token punctuation">.</span>results <span class="token operator">=</span> RECIPE_RESULTS_LIST <span class="token punctuation">{</span>
+				<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token operator">=</span>RECIPE_RESULTS_ITEM <span class="token punctuation">{</span>
+					<span class="token punctuation">.</span>dimension <span class="token operator">=</span> <span class="token punctuation">{</span> <span class="token punctuation">.</span>width <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">.</span>height <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+					<span class="token punctuation">.</span>result_count <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">,</span>
+					<span class="token punctuation">.</span>results <span class="token operator">=</span> RECIPE_RESULT_LIST <span class="token punctuation">{</span>
+						<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token operator">=</span>RECIPE_RESULT_ITEM <span class="token punctuation">{</span>
+							<span class="token punctuation">.</span>item <span class="token operator">=</span> <span class="token function">RECIPE_COMPOSITE_ID</span><span class="token punctuation">(</span><span class="token number">12</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+							<span class="token punctuation">.</span>stack_size <span class="token operator">=</span> <span class="token number">4</span><span class="token punctuation">,</span>
+						<span class="token punctuation">}</span><span class="token punctuation">,</span>
+					<span class="token punctuation">}</span><span class="token punctuation">,</span>
+				<span class="token punctuation">}</span><span class="token punctuation">,</span>
+			<span class="token punctuation">}</span><span class="token punctuation">,</span>
+			<span class="token punctuation">.</span>nodes <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">,</span>
+		<span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre>
+<h3 id="querying-a-pattern"><a class="header-anchor" href="#querying-a-pattern"></a> Querying a Pattern</h3>
+<p>Lastly, let's go over how you actually query a tree and the decisions made therein for better integeration with a block that has crafting mechanics. The initial section to consider the format of the query to submit/use when traversing the tree. When we think about it, there are really only two main components; a representation of the pattern currently in the recipe and the slots to store the results into, which are potentially already occupied.</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">RecipePatternEntry</span> <span class="token punctuation">{</span>
+    CompositeID id<span class="token punctuation">;</span>
+    u8 stack_size<span class="token punctuation">;</span>
+    u8 _pad<span class="token punctuation">;</span>
+<span class="token punctuation">}</span> RecipePatternEntry<span class="token punctuation">;</span>
+<span class="token keyword">typedef</span> RecipePatternEntry<span class="token operator">*</span> RecipePattern<span class="token punctuation">;</span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name function">RECIPE_PATTERN</span><span class="token expression"><span class="token punctuation">(</span>name<span class="token punctuation">,</span> count<span class="token punctuation">)</span> RecipePatternEntry name<span class="token punctuation">[</span><span class="token punctuation">(</span>count<span class="token punctuation">)</span><span class="token punctuation">]</span></span></span></code></pre>
+<p>Each entry of the pattern is denoted by the composite ID of the item and the stack size, which can be saturated with the item stack details for each input slot. Using the <code>RECIPE_PATTERN</code> macro allows for a pattern to be defined according to the number of inputs that are present. For example, a crafting grid 3x3 with 9 inputs or a machine with 4x2 input slots for 8 total. Let's consider what occurs when we want to walk the recipe tree for an example pattern:</p>
+<pre><code>+-+-+-+
+| | | |
++-+-+-+
+| |T|T|
++-+-+-+
+| |T|T|
++-+-+-+
+</code></pre>
+<p>Since the 3x3 pattern here is represented with a 1D array of 9 elements, we would need many redundant nodes in the tree if we walked from the start to end of that pattern trying to match child nodes for each pattern element. Especially since theres lots of empty space we don't really need to care about. This is essentially the problem of generalising shaped crafting that only takes a subset of the input slots. So, we can provide dimensions for the input slots in order to compute the quadralateral hull of the pattern with actual elements in it. For our example, that would mean we only consider the bottom right four elements of the grid. more generally, this looks like:</p>
+<pre class="language-c"><code class="language-c">u8 right <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+u8 bottom <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+u8 top <span class="token operator">=</span> pattern_dimension<span class="token punctuation">.</span>height<span class="token punctuation">;</span>
+u8 left <span class="token operator">=</span> pattern_dimension<span class="token punctuation">.</span>width<span class="token punctuation">;</span>
+<span class="token comment">// Compute the quaderlateral hull of the pattern slots</span>
+<span class="token comment">// that have items in them. This is the subset of the</span>
+<span class="token comment">// pattern that is used to walk the tree.</span>
+<span class="token keyword">for</span> <span class="token punctuation">(</span>u8 y <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> y <span class="token operator">&lt;</span> pattern_dimension<span class="token punctuation">.</span>height<span class="token punctuation">;</span> y<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">for</span> <span class="token punctuation">(</span>u8 x <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> x <span class="token operator">&lt;</span> pattern_dimension<span class="token punctuation">.</span>width<span class="token punctuation">;</span> x<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>pattern<span class="token punctuation">[</span><span class="token punctuation">(</span>y <span class="token operator">*</span> pattern_dimension<span class="token punctuation">.</span>width<span class="token punctuation">)</span> <span class="token operator">+</span> x<span class="token punctuation">]</span><span class="token punctuation">.</span>id<span class="token punctuation">.</span>separated<span class="token punctuation">.</span>id <span class="token operator">!=</span> ITEMID_AIR<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            left <span class="token operator">=</span> <span class="token function">min</span><span class="token punctuation">(</span>left<span class="token punctuation">,</span> x<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            top <span class="token operator">=</span> <span class="token function">min</span><span class="token punctuation">(</span>top<span class="token punctuation">,</span> y<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            right <span class="token operator">=</span> <span class="token function">max</span><span class="token punctuation">(</span>right<span class="token punctuation">,</span> x<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            bottom <span class="token operator">=</span> <span class="token function">max</span><span class="token punctuation">(</span>bottom<span class="token punctuation">,</span> y<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<p>With the resulting bounds of <code>right</code>, <code>bottom</code>, <code>top</code> and <code>left</code>, we can now walk the tree with only the hulled elements. I'll leave it as an excersise to the reader to convice yourself that this works for constructing a quad hull with non-square pattern subsets (i.e an L shape in the same position in the 3x3 yeilds the same hull as a 2x2). Now, walking the tree is simply a matter of traversing each of the pattern elements in the hull in order:</p>
+<pre class="language-c"><code class="language-c">RecipeNode <span class="token keyword">const</span><span class="token operator">*</span> current <span class="token operator">=</span> root<span class="token punctuation">;</span>
+<span class="token keyword">for</span> <span class="token punctuation">(</span>u8 y <span class="token operator">=</span> top<span class="token punctuation">;</span> y <span class="token operator">&lt;=</span> bottom<span class="token punctuation">;</span> y<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">for</span> <span class="token punctuation">(</span>u8 x <span class="token operator">=</span> left<span class="token punctuation">;</span> x <span class="token operator">&lt;=</span> right<span class="token punctuation">;</span> x<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> u32 index <span class="token operator">=</span> <span class="token punctuation">(</span>y <span class="token operator">*</span> pattern_dimension<span class="token punctuation">.</span>width<span class="token punctuation">)</span> <span class="token operator">+</span> x<span class="token punctuation">;</span>
+        current <span class="token operator">=</span> <span class="token function">recipeNodeGetNext</span><span class="token punctuation">(</span>current<span class="token punctuation">,</span> <span class="token operator">&amp;</span>pattern<span class="token punctuation">[</span>index<span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>current <span class="token operator">==</span> <span class="token constant">NULL</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">return</span> RECIPE_NOT_FOUND<span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        ingredient_consume_sizes<span class="token punctuation">[</span>index<span class="token punctuation">]</span> <span class="token operator">=</span> current<span class="token operator">-></span>stack_size<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<p>Note the introduction of the <code>ingredient_consume_sizes</code> which is just an array of <code>u8</code> to store the  stack size required for the item at the pattern index for the current ingredient, so that we know how much to consume from the item stack later when actually taking the result item(s). Either we terminate the loop early an indicate that a recipe is not found in the case that we couldn't find a matching recipe node or the <code>current</code> variable contains the last recipe node, inidcating a matching recipe. At this point we can find the result node in <code>current-&gt;results</code> that has matching dimensions with our subset of the pattern and construct the results appropriately, or return nothing to indicate that there was a dimension mismatch.</p>
+<pre class="language-c"><code class="language-c">RecipeQueryState <span class="token function">recipeNodeGetRecipeResult</span><span class="token punctuation">(</span><span class="token keyword">const</span> RecipeNode<span class="token operator">*</span> node<span class="token punctuation">,</span>
+                                           <span class="token keyword">const</span> Dimension<span class="token operator">*</span> dimension<span class="token punctuation">,</span>
+                                           RecipeQueryResult<span class="token operator">*</span> query_result<span class="token punctuation">,</span>
+                                           bool create_result_item<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>node<span class="token operator">-></span>results <span class="token operator">==</span> <span class="token constant">NULL</span> <span class="token operator">||</span> node<span class="token operator">-></span>result_count <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">return</span> RECIPE_NOT_FOUND<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">for</span> <span class="token punctuation">(</span>u32 i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> node<span class="token operator">-></span>result_count<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        RecipeResults<span class="token operator">*</span> result <span class="token operator">=</span> node<span class="token operator">-></span>results<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">dimensionEquals</span><span class="token punctuation">(</span>dimension<span class="token punctuation">,</span> <span class="token operator">&amp;</span>result<span class="token operator">-></span>dimension<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span>create_result_item<span class="token punctuation">)</span> <span class="token function">assembleResult</span><span class="token punctuation">(</span>result<span class="token punctuation">,</span> query_result<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">return</span> RECIPE_FOUND<span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">return</span> RECIPE_NOT_FOUND<span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+<p>I won't go into details on the <code>assembleResult</code> method too much as it is just item construction code for each result element and logic for handling overlap with items already in the result slots. However, one thing here that is worth addressing is the <code>create_result_item</code> flag, which dicates whether to do this action or not. The reasoning here is we may only want to actually create results when an action different to the one that started the query occurs. I.e. putting items into the input slots will attempt to resolve the results to validate it and only when a button is pressed the recipe is actually processed.</p>
+<h4 id="traversing-nodes"><a class="header-anchor" href="#traversing-nodes"></a> Traversing Nodes</h4>
+<p>Let's go back a bit to the <code>recipeNodeGetNext</code> function that was in the code for traversing the tree based on the pattern subset:</p>
+<pre class="language-c"><code class="language-c">RecipeNode<span class="token operator">*</span> <span class="token function">recipeNodeGetNext</span><span class="token punctuation">(</span><span class="token keyword">const</span> RecipeNode<span class="token operator">*</span> node<span class="token punctuation">,</span> <span class="token keyword">const</span> RecipePatternEntry<span class="token operator">*</span> pattern<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>node<span class="token operator">-></span>nodes <span class="token operator">==</span> <span class="token constant">NULL</span> <span class="token operator">||</span> node<span class="token operator">-></span>node_count <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">return</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token comment">// NOTE: These need to be signed otherwise we can get upper to</span>
+    <span class="token comment">// be u32::MAX if there is only one element in the array and it</span>
+    <span class="token comment">// doesn't match the item</span>
+    i32 lower <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    i32 mid<span class="token punctuation">;</span>
+    i32 upper <span class="token operator">=</span> node<span class="token operator">-></span>node_count <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">while</span> <span class="token punctuation">(</span>lower <span class="token operator">&lt;=</span> upper<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        mid <span class="token operator">=</span> <span class="token punctuation">(</span>lower <span class="token operator">+</span> upper<span class="token punctuation">)</span> <span class="token operator">>></span> <span class="token number">1</span><span class="token punctuation">;</span>
+        RecipeNode<span class="token operator">*</span> next_node <span class="token operator">=</span> node<span class="token operator">-></span>nodes<span class="token punctuation">[</span>mid<span class="token punctuation">]</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>next_node<span class="token operator">-></span>item<span class="token punctuation">.</span>data <span class="token operator">==</span> pattern<span class="token operator">-></span>id<span class="token punctuation">.</span>data<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span>next_node<span class="token operator">-></span>stack_size <span class="token operator">&lt;</span> pattern<span class="token operator">-></span>stack_size<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token comment">// Number of items in the slot is insufficient</span>
+                <span class="token keyword">return</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+            <span class="token keyword">return</span> next_node<span class="token punctuation">;</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>next_node<span class="token operator">-></span>item<span class="token punctuation">.</span>data <span class="token operator">></span> pattern<span class="token operator">-></span>id<span class="token punctuation">.</span>data<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            upper <span class="token operator">=</span> mid <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+            lower <span class="token operator">=</span> mid <span class="token operator">+</span> <span class="token number">1</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">return</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+<p>This is the same function that was mention during the explanation of the <code>CompositeID</code> and why it exists. The only difference here is that we account for the stack size as a constibution to determining the validity of a node as a match for a pattern element. Even if the items match ID-wise, if we don't have enough items in the input slots, then the pattern cannot be a match.</p>
+<p>It should be noted that this function relies on the nodes to be pre-sorted based on their composite ID, which in PSXMC is done via a script that preprocesses a JSON definition of the recipes into a recipe tree definition as a source and header combination. If you are constructing these manually and using this function, then you should be aware of this otherwise you'll get some wild results.</p>
+<h4 id="deferred-ingredient-consumption"><a class="header-anchor" href="#deferred-ingredient-consumption"></a> Deferred Ingredient Consumption</h4>
+<p>Previously, it was mentioned that the traversal code for querying a recipe would saturate an array of <code>u8</code> that stores the stack sizes of each recipe ingredient. This exists as a means to know how much of an item stack in each input slot for the pattern should be consumed when the recipe is processed. To make this easier, a utility function exists in the PSXMC implementation to do this specifically:</p>
+<pre class="language-c"><code class="language-c"><span class="token keyword">void</span> <span class="token function">recipeConsumeIngredients</span><span class="token punctuation">(</span>Slot<span class="token operator">*</span> slots<span class="token punctuation">,</span>
+                              <span class="token keyword">const</span> u8<span class="token operator">*</span> ingredient_consume_sizes<span class="token punctuation">,</span>
+                              <span class="token keyword">int</span> start_index<span class="token punctuation">,</span>
+                              <span class="token keyword">int</span> end_index<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">int</span> i <span class="token operator">=</span> start_index<span class="token punctuation">;</span> i <span class="token operator">&lt;</span> end_index<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        Slot<span class="token operator">*</span> slot <span class="token operator">=</span> <span class="token operator">&amp;</span>slots<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">;</span>
+        IItem<span class="token operator">*</span> iitem <span class="token operator">=</span> slot<span class="token operator">-></span>data<span class="token punctuation">.</span>item<span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>iitem <span class="token operator">==</span> <span class="token constant">NULL</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token keyword">continue</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        Item<span class="token operator">*</span> item <span class="token operator">=</span> <span class="token function">VCAST_PTR</span><span class="token punctuation">(</span>Item<span class="token operator">*</span><span class="token punctuation">,</span> iitem<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">assert</span><span class="token punctuation">(</span>item<span class="token operator">-></span>stack_size <span class="token operator">></span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        item<span class="token operator">-></span>stack_size <span class="token operator">-=</span> ingredient_consume_sizes<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>item<span class="token operator">-></span>stack_size <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token function">VCALL</span><span class="token punctuation">(</span><span class="token operator">*</span>iitem<span class="token punctuation">,</span> destroy<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            slot<span class="token operator">-></span>data<span class="token punctuation">.</span>item <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<p>This allows you to this consumption easily, with a few assumptions built in here about the stack sizes already being validated as at least large enough to remove the items from prior to invoking the function. It is generally applicable though a quality-of-life function that any usage of the recipe handlers can take advantage of such a crafting tables, inventory crafting, furnaces, modded machines, etc.</p>
+<h2 id="conclusion"><a class="header-anchor" href="#conclusion"></a> Conclusion</h2>
+<p>Hopefully, this did decent job at explaining how/why the recipe system is implemented in PSXMC in this way. There's a lot to consider performance wise as a tradeoff for your needs though as it can make the API for recipe handlers a bit cumbersome, which you could argue is the case with PSXMC. However, for the sake of limited resources and adaptability this seems to get the job done. The following parts of the PSXMC repository might be helpful as additional resources if you wish to see the full implementation and usage:</p>
+<ul>
+<li>Recipe API: <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/beedd84247f3a8fa391aa61e17839158cf980a81/src/game/recipe/recipe.h">src/game/recipe/recipe.h</a> <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/beedd84247f3a8fa391aa61e17839158cf980a81/src/game/recipe/recipe.c">src/game/recipe/recipe.c</a></li>
+<li>Crafting table usage: <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/beedd84247f3a8fa391aa61e17839158cf980a81/src/game/blocks/block_crafting_table.c#L59-L167">src/game/blocks/block_crafting_table.c</a></li>
+<li>Inventory usage: <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/b8107dfa7b51d28720de4e9f1bbfcfb2a12f82b8/src/game/gui/inventory.c#L359-L458">src/game/gui/inventory.c</a></li>
+<li>Crafing recipe tree (only some recipes): <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/beedd84247f3a8fa391aa61e17839158cf980a81/src/game/recipe/crafting.c">src/game/recipe/crafting.c</a></li>
+<li>Utility script to parse JSON definition to a recipe tree (currently missing handling for stack sizes): <a href="https://github.com/EngineersBox/PSX-Minecraft/blob/beedd84247f3a8fa391aa61e17839158cf980a81/scripts/recipe_tree.py">scripts/recipe_tree.py</a></li>
+</ul>
+
+					]]>
+			</description>
+      <pubDate>Thu, 19 Sep 2024 00:00:00 +0000</pubDate>
+      <dc:creator>EngineersBox</dc:creator>
+      <guid>https://engineersbox.github.io/website/2024/09/19/compile-time-crafting-recipe-trees.html</guid>
+    </item>
   </channel>
 </rss>
