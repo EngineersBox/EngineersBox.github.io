@@ -3,6 +3,7 @@ const syntaxHighlight = require('@11ty/eleventy-plugin-syntaxhighlight');
 const lazyImagesPlugin = require('eleventy-plugin-lazyimages');
 const markdownIt = require("markdown-it");
 const markdownItAnchor = require("markdown-it-anchor");
+const markdownItFootnote = require("markdown-it-footnote");
 const path = require('path');
 
 const filters = require('./filters');
@@ -46,7 +47,7 @@ module.exports = function (eleventyConfig) {
         permalink: true,
         permalinkBefore: true,
         permalinkSymbol: ""
-    });
+    }).use(markdownItFootnote);
     eleventyConfig.setLibrary("md", markdownLibrary);
 
     eleventyConfig
