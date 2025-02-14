@@ -438,7 +438,7 @@ col <span class="token operator">&amp;=</span> <span class="token operator">!</s
     
     <item>
       <title>Compile-time crafting recipe trees</title>
-      <link>https://engineersbox.github.io/website/2024/09/19/compile-time-crafting-recipe-trees.html</link>
+      <link>https://engineersbox.github.io/website/2025/02/14/compile-time-crafting-recipe-trees.html</link>
       <description>
 					<![CDATA[
 					<h2 id="motivation"><a class="header-anchor" href="#motivation"></a> Motivation</h2>
@@ -860,9 +860,9 @@ u8 left <span class="token operator">=</span> pattern_dimension<span class="toke
 
 					]]>
 			</description>
-      <pubDate>Thu, 19 Sep 2024 00:00:00 +0000</pubDate>
+      <pubDate>Fri, 14 Feb 2025 00:00:00 +0000</pubDate>
       <dc:creator>EngineersBox</dc:creator>
-      <guid>https://engineersbox.github.io/website/2024/09/19/compile-time-crafting-recipe-trees.html</guid>
+      <guid>https://engineersbox.github.io/website/2025/02/14/compile-time-crafting-recipe-trees.html</guid>
     </item>
   </channel>
 </rss>
