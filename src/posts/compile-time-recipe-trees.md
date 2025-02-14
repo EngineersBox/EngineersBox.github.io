@@ -1,6 +1,6 @@
 ---
 title: Compile-time crafting recipe trees
-date: "2024-09-19"
+date: "2025-02-14"
 summary: "Compile-time constructed crafting recipe trees for bounded-complexity traversal"
 tags:
  - recipe
